@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ur" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Prediction Panel with Website</title>
+<link href="https://fonts.googleapis.com/css2?family=El+Messiri:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* Basic styling for the body */
+body{
+    margin:0;
+    font-family:'El Messiri',sans-serif;
+    background: linear-gradient(135deg,#6a11cb,#2575fc); /* Background to match top panel */
+    overflow:hidden;
+}
+
+/* The iframe for the website */
+#game-iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;z-index:0;}
+
+/* Panel styling - INCREASED SIZE */
+.top-panel{position:fixed;top:15px;left:50%;transform:translateX(-50%);z-index:1000;}
+.top-card{
+    display:flex;
+    align-items:center;
+    gap:16px;
+    background:rgba(255, 255, 255, 0.1); /* Glass effect background */
+    backdrop-filter: blur(10px); /* Glass effect blur */
+    color:white;
+    border-radius:24px;
+    padding:12px 20px;
+    box-shadow:0 6px 20px rgba(0,0,0,0.3);
+}
+.dot-live{width:10px;height:10px;border-radius:50%;background:red;animation:blink 1s infinite;}
+@keyframes blink{50%{opacity:0.4}}
+.panel-item{display:flex;align-items:center;gap:6px;font-size:16px;}
+.close-btn{background:none;border:none;font-size:18px;color:white;cursor:pointer;}
+
+/* FAB button */
+.fab{position:fixed;bottom:20px;right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#ff512f,#dd2476);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,0.3);z-index:1000;}
+.fab svg{width:28px;height:28px;fill:white;}
+
+/* History overlay - MODIFIED */
+.history-overlay{
+    display:none;
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%, -50%);
+    width:90%;
+    max-width:400px;
+    background-color:rgba(37, 117, 252, 0.3); /* Glass effect background */
+    backdrop-filter: blur(15px); /* Glass effect blur */
+    border-radius:15px;
+    box-shadow:0 8px 25px rgba(0,0,0,0.3);
+    z-index:2000;
+    padding:20px;
+    box-sizing:border-box;
+    max-height:80%;
+    overflow-y:auto;
+    color: white;
+}
+.history-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding-bottom:10px;
+    margin-bottom:15px;
+    border-bottom: 2px solid #5a99ff; /* Adjusted color for visibility */
+}
+.history-header h3{
+    margin:0;
+    font-size:20px;
+    font-weight:700;
+}
+.history-header .close-btn{
+    color:white;
+    font-size:24px;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+#historyList {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* History list items - MODIFIED */
+.hist-item {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.hist-item span {
+    font-size: 16px;
+    color: white;
+    flex: 1; /* All items now take equal space */
+    text-align: center;
+    margin-right: 0; /* Remove extra margin */
+}
+.hist-item span:first-child {
+    font-weight: bold;
+    flex: 1;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Spacing between dot and number */
+}
+.hist-item span:nth-child(2) {
+    display: flex;
+    justify-content: center;
+    align-items: center; /* Align items vertically */
+    gap: 8px; /* Gap between icon and text */
+}
+.hist-item span:last-child {
+    text-align: right;
+    flex: 1;
+}
+
+/* Icons - MODIFIED */
+.win-icon, .loss-icon, .pending-icon, .magic-wand-icon {
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.purple-dot {
+    width: 10px;
+    height: 10px;
+    background-color: #6a11cb;
+    border-radius: 50%;
+    display: inline-block;
+}
+.period-icon {
+    font-weight: bold;
+    color: #fff;
+    font-size: 18px;
+}
+.magic-wand-icon svg {
+    fill: white;
+}
+</style>
+</head>
+<body>
+
+<iframe id="game-iframe" src="https://www.jalwagames2.com/#/saasLottery/WinGo?gameCode=WinGo_30S&lottery=WinGo"></iframe>
+
+<div class="top-panel" id="topPanel">
+  <div class="top-card">
+    <div class="panel-item"><span class="dot-live"></span>LIVE</div>
+    <div class="panel-item">WINGO 1min </div>
+    <div class="panel-item" id="periodNo">#-</div>
+    <div class="panel-item" id="predLabel">-</div>
+    <button class="close-btn" onclick="document.getElementById('topPanel').style.display='none'">✕</button>
+  </div>
+</div>
+
+<div class="fab" onclick="openHistory()">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 20c4.418 0 8-3.582 8-8s-3.582-8-8-8-8 3.582-8 8 3.582 8 8 8zm0-14c3.309 0 6 2.691 6 6s-2.691 6-6 6-6-2.691-6-6 2.691-6 6-6zm1 6h4v2h-6V7h2v5z"/></svg>
+</div>
+
+<div class="history-overlay" id="historyOverlay">
+  <div class="history-header">
+    <h3>Record</h3>
+    <button class="close-btn" onclick="closeHistory()">✕</button>
+  </div>
+  <ul id="historyList"></ul>
+</div>
+
+<script>
+// You can change the website URL here as needed.
+const websiteUrl = "https://51gamel.com/#/register?invitationCode=73254304876";
+document.getElementById('game-iframe').src = websiteUrl;
+
+let predictionHistory = [];
+let currentPeriod = null;
+let lastPredictedPeriod = null;
+let lastResults = [];
+
+// ======================
+// 🧠 NEW PREDICTION LOGIC - By King Coder
+// ======================
+const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const predictNextOutcome = () => {
+    const n = getRandomInt(1, 2);
+    const predicted = (n === 1) ? 'BIG' : 'SMALL';
+    console.log(`Picked Number: ${n} → Result: ${predicted}`);
+    return { predicted };
+};
+
+// ======================
+// 🚀 MAIN APPLICATION LOGIC
+// ======================
+function classify(number) {
+    return parseInt(number) >= 5 ? "SMALL" : "BIG";
+}
+
+async function fetchGameResult() {
+  try {
+    const ts = Date.now();
+    const res = await fetch(`https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json?ts=${ts}`);
+    const data = await res.json();
+    return data?.data?.list || [];
+  } catch(e) { 
+    console.error('Fetch error:', e);
+    return []; 
+  }
+}
+
+async function updatePanel() {
+  const data = await fetchGameResult();
+  if (!data.length) {
+    document.getElementById('predLabel').innerText = "Loading...";
+    return;
+  }
+  
+  const results = data.slice(0, 50).map(item => classify(item.number));
+  lastResults = [...results].reverse();
+  
+  currentPeriod = data[0].issueNumber;
+  const nextPeriod = (BigInt(currentPeriod) + 1n).toString();
+
+  if (lastPredictedPeriod !== nextPeriod) {
+    let predLabel;
+    const storedPrediction = localStorage.getItem(`prediction_${nextPeriod}`);
+    if (storedPrediction) {
+      predLabel = storedPrediction;
+    } else {
+      const prediction = predictNextOutcome();
+      predLabel = prediction.predicted;
+      localStorage.setItem(`prediction_${nextPeriod}`, predLabel);
+    }
+    
+    if (predLabel !== 'BIG' && predLabel !== 'SMALL') {
+        predLabel = Math.random() > 0.5 ? "SMALL" : "BIG";
+    }
+
+    lastPredictedPeriod = nextPeriod;
+    predictionHistory.unshift({ period: nextPeriod, predicted: predLabel, actual: null });
+  }
+
+  document.getElementById('periodNo').innerText = `#${nextPeriod.slice(-5)}`;
+  
+  const currentPred = predictionHistory?.[0]?.predicted;
+  document.getElementById('predLabel').innerText = (currentPred === 'BIG' || currentPred === 'SMALL') ? currentPred : (Math.random() > 0.5 ? "BIG" : "SMALL");
+
+
+  predictionHistory.forEach(item => {
+    const match = data.find(d => d.issueNumber === item.period);
+    if (match && item.actual === null) {
+      item.actual = classify(match.number);
+    }
+  });
+
+  renderHistory();
+}
+
+// Function to render the history list - MODIFIED
+function renderHistory() {
+  const historyEl = document.getElementById('historyList');
+  historyEl.innerHTML = '';
+  predictionHistory.forEach(item => {
+    let resultIconHTML = '';
+    let predictedValue = item.predicted;
+    // Fallback for displayed value in case it's not BIG or SMALL
+    if (predictedValue !== 'BIG' && predictedValue !== 'SMALL') {
+        predictedValue = Math.random() > 0.5 ? "SMALL" : "BIG";
+    }
+
+    if (item.actual === null) {
+      resultIconHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="2" fill="white"/>
+          <circle cx="6" cy="12" r="2" fill="white"/>
+          <circle cx="18" cy="12" r="2" fill="white"/>
+        </svg>
+      `;
+    } else if (item.predicted === item.actual) {
+      resultIconHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="#4CAF50"/>
+          <path d="M9 16.2L4.8 12L3.4 13.4L9 19L21 7L19.6 5.6L9 16.2Z" fill="white"/>
+        </svg>
+      `;
+    } else {
+      resultIconHTML = `
+        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="12" cy="12" r="10" fill="#F44336"/>
+          <path d="M12 10.6L16.4 6.2L17.8 7.6L13.4 12L17.8 16.4L16.4 17.8L12 13.4L7.6 17.8L6.2 16.4L10.6 12L6.2 7.6L12 10.6Z" fill="white"/>
+          </svg>
+      `;
+    }
+    const li = document.createElement('li');
+    li.className = 'hist-item';
+    li.innerHTML = `
+      <span>#${item.period.slice(-5)}</span>
+      <span>
+        ${predictedValue}
+        <span class="magic-wand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M19.99 11.99L12 4L4 11.99L12 19.99L19.99 11.99Z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="M12 4V2M4 12H2M20 12H22M12 20V22" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7.07 7.07L5.66 5.66M16.93 16.93L15.52 15.52" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </span>
+      <span class="result-icon">${resultIconHTML}</span>
+    `;
+    historyEl.appendChild(li);
+  });
+}
+
+function openHistory() { document.getElementById('historyOverlay').style.display = 'block'; }
+function closeHistory() { document.getElementById('historyOverlay').style.display = 'none'; }
+
+updatePanel();
+setInterval(updatePanel, 5000);
+</script>
+</body>
+</html>
