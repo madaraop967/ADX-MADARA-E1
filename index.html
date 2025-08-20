@@ -10,7 +10,7 @@
 body{
     margin:0;
     font-family:'El Messiri',sans-serif;
-    background: linear-gradient(135deg,#6a11cb,#2575fc); /* Background to match top panel */
+    background: linear-gradient(135deg,#6a11cb,#2575fc);
     overflow:hidden;
 }
 
@@ -23,8 +23,8 @@ body{
     display:flex;
     align-items:center;
     gap:16px;
-    background:rgba(255, 255, 255, 0.1); /* Glass effect background */
-    backdrop-filter: blur(10px); /* Glass effect blur */
+    background:rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
     color:white;
     border-radius:24px;
     padding:12px 20px;
@@ -48,8 +48,8 @@ body{
     transform:translate(-50%, -50%);
     width:90%;
     max-width:400px;
-    background-color:rgba(37, 117, 252, 0.3); /* Glass effect background */
-    backdrop-filter: blur(15px); /* Glass effect blur */
+    background-color:rgba(37, 117, 252, 0.3);
+    backdrop-filter: blur(15px);
     border-radius:15px;
     box-shadow:0 8px 25px rgba(0,0,0,0.3);
     z-index:2000;
@@ -65,7 +65,7 @@ body{
     align-items:center;
     padding-bottom:10px;
     margin-bottom:15px;
-    border-bottom: 2px solid #5a99ff; /* Adjusted color for visibility */
+    border-bottom: 2px solid #5a99ff;
 }
 .history-header h3{
     margin:0;
@@ -100,9 +100,9 @@ body{
 .hist-item span {
     font-size: 16px;
     color: white;
-    flex: 1; /* All items now take equal space */
+    flex: 1;
     text-align: center;
-    margin-right: 0; /* Remove extra margin */
+    margin-right: 0;
 }
 .hist-item span:first-child {
     font-weight: bold;
@@ -110,13 +110,13 @@ body{
     text-align: left;
     display: flex;
     align-items: center;
-    gap: 8px; /* Spacing between dot and number */
+    gap: 8px;
 }
 .hist-item span:nth-child(2) {
     display: flex;
     justify-content: center;
-    align-items: center; /* Align items vertically */
-    gap: 8px; /* Gap between icon and text */
+    align-items: center;
+    gap: 8px;
 }
 .hist-item span:last-child {
     text-align: right;
@@ -146,6 +146,7 @@ body{
     fill: white;
 }
 </style>
+<script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.6.2/dist/dotlottie-wc.js" type="module"></script>
 </head>
 <body>
 
@@ -174,146 +175,150 @@ body{
 </div>
 
 <script>
-// You can change the website URL here as needed.
-const websiteUrl = "https://51gamel.com/#/register?invitationCode=73254304876";
+const websiteUrl = "https://51gamel.com/#/register?invitationCode=67536219330";
 document.getElementById('game-iframe').src = websiteUrl;
 
 let predictionHistory = [];
 let currentPeriod = null;
 let lastPredictedPeriod = null;
-let lastResults = [];
 
-// ======================
-// 🧠 NEW PREDICTION LOGIC - By King Coder
-// ======================
-const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-const predictNextOutcome = () => {
-    const n = getRandomInt(1, 2);
-    const predicted = (n === 1) ? 'BIG' : 'SMALL';
-    console.log(`Picked Number: ${n} → Result: ${predicted}`);
-    return { predicted };
-};
+// ======================================
+// 🧠 ADAPTIVE MEMORY ENGINE
+// ======================================
+let adaptiveHistory = [];
 
-// ======================
+function adaptiveMemoryEngine(periodStr) {
+    const n = BigInt(periodStr);
+    const lastDigit = Number(n % 10n);
+    const parity = lastDigit % 2 === 0 ? "SMALL" : "BIG";
+    const mirror = (9 - lastDigit) <= 4 ? "SMALL" : "BIG";
+
+    let fallback = parity === mirror ? parity : (Math.random() > 0.5 ? "SMALL" : "BIG");
+
+    const last10 = adaptiveHistory.slice(0, 10);
+    const bigCount = last10.filter(h => h.prediction === "BIG" && h.resultStatus === "WIN").length;
+    const smallCount = last10.filter(h => h.prediction === "SMALL" && h.resultStatus === "WIN").length;
+
+    let size;
+    if (bigCount - smallCount >= 3) {
+        size = "SMALL";
+    } else if (smallCount - bigCount >= 3) {
+        size = "BIG";
+    } else {
+        size = fallback;
+    }
+
+    const number = size === "BIG" ? [5,6,7,8,9][Math.random()*5|0] : [0,1,2,3,4][Math.random()*5|0];
+
+    // Save prediction to memory
+    adaptiveHistory.unshift({
+        period: periodStr,
+        prediction: size,
+        resultStatus: "Pending",
+        engine: "Adaptive Memory Engine"
+    });
+
+    return { prediction: size };
+}
+
+
+// ======================================
 // 🚀 MAIN APPLICATION LOGIC
-// ======================
+// ======================================
 function classify(number) {
-    return parseInt(number) >= 5 ? "SMALL" : "BIG";
+    // Corrected logic: 0-4 are SMALL, 5-9 are BIG
+    const num = parseInt(number);
+    return (num >= 5) ? "BIG" : "SMALL";
 }
 
 async function fetchGameResult() {
-  try {
-    const ts = Date.now();
-    const res = await fetch(`https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json?ts=${ts}`);
-    const data = await res.json();
-    return data?.data?.list || [];
-  } catch(e) { 
-    console.error('Fetch error:', e);
-    return []; 
-  }
+    try {
+        const ts = Date.now();
+        const res = await fetch(`https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json?ts=${ts}`);
+        const data = await res.json();
+        return data?.data?.list || [];
+    } catch(e) {
+        console.error('Fetch error:', e);
+        return [];
+    }
 }
 
 async function updatePanel() {
-  const data = await fetchGameResult();
-  if (!data.length) {
-    document.getElementById('predLabel').innerText = "Loading...";
-    return;
-  }
-  
-  const results = data.slice(0, 50).map(item => classify(item.number));
-  lastResults = [...results].reverse();
-  
-  currentPeriod = data[0].issueNumber;
-  const nextPeriod = (BigInt(currentPeriod) + 1n).toString();
-
-  if (lastPredictedPeriod !== nextPeriod) {
-    let predLabel;
-    const storedPrediction = localStorage.getItem(`prediction_${nextPeriod}`);
-    if (storedPrediction) {
-      predLabel = storedPrediction;
-    } else {
-      const prediction = predictNextOutcome();
-      predLabel = prediction.predicted;
-      localStorage.setItem(`prediction_${nextPeriod}`, predLabel);
+    const data = await fetchGameResult();
+    if (!data.length) {
+        document.getElementById('predLabel').innerText = "Loading...";
+        return;
     }
+
+    const currentPeriod = data[0].issueNumber;
+    const nextPeriod = (BigInt(currentPeriod) + 1n).toString();
+
+    // Check if new prediction needed
+    if (lastPredictedPeriod !== nextPeriod) {
+        const { prediction } = adaptiveMemoryEngine(nextPeriod);
+        
+        lastPredictedPeriod = nextPeriod;
+        predictionHistory.unshift({ period: nextPeriod, predicted: prediction, actual: null });
+    }
+
+    document.getElementById('periodNo').innerText = `#${nextPeriod.slice(-5)}`;
     
-    if (predLabel !== 'BIG' && predLabel !== 'SMALL') {
-        predLabel = Math.random() > 0.5 ? "SMALL" : "BIG";
-    }
+    const currentPred = predictionHistory?.[0]?.predicted;
+    document.getElementById('predLabel').innerText = (currentPred === 'SMALL' || currentPred === 'BIG') ? currentPred : "...";
 
-    lastPredictedPeriod = nextPeriod;
-    predictionHistory.unshift({ period: nextPeriod, predicted: predLabel, actual: null });
-  }
+    // Update history based on latest results
+    predictionHistory.forEach(item => {
+        const match = data.find(d => d.issueNumber === item.period);
+        if (match && item.actual === null) {
+            item.actual = classify(match.number);
+            
+            // Also update the adaptive history
+            const adaptiveItem = adaptiveHistory.find(h => h.period === item.period);
+            if(adaptiveItem) {
+                adaptiveItem.resultStatus = (item.predicted === item.actual) ? "WIN" : "LOSS";
+            }
+        }
+    });
 
-  document.getElementById('periodNo').innerText = `#${nextPeriod.slice(-5)}`;
-  
-  const currentPred = predictionHistory?.[0]?.predicted;
-  document.getElementById('predLabel').innerText = (currentPred === 'BIG' || currentPred === 'SMALL') ? currentPred : (Math.random() > 0.5 ? "BIG" : "SMALL");
-
-
-  predictionHistory.forEach(item => {
-    const match = data.find(d => d.issueNumber === item.period);
-    if (match && item.actual === null) {
-      item.actual = classify(match.number);
-    }
-  });
-
-  renderHistory();
+    renderHistory();
 }
 
-// Function to render the history list - MODIFIED
+// Function to render the history list
 function renderHistory() {
-  const historyEl = document.getElementById('historyList');
-  historyEl.innerHTML = '';
-  predictionHistory.forEach(item => {
-    let resultIconHTML = '';
-    let predictedValue = item.predicted;
-    // Fallback for displayed value in case it's not BIG or SMALL
-    if (predictedValue !== 'BIG' && predictedValue !== 'SMALL') {
-        predictedValue = Math.random() > 0.5 ? "SMALL" : "BIG";
-    }
+    const historyEl = document.getElementById('historyList');
+    historyEl.innerHTML = '';
+    predictionHistory.forEach(item => {
+        let resultIconHTML = '';
+        let predictedValue = item.predicted;
 
-    if (item.actual === null) {
-      resultIconHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="2" fill="white"/>
-          <circle cx="6" cy="12" r="2" fill="white"/>
-          <circle cx="18" cy="12" r="2" fill="white"/>
-        </svg>
-      `;
-    } else if (item.predicted === item.actual) {
-      resultIconHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="10" fill="#4CAF50"/>
-          <path d="M9 16.2L4.8 12L3.4 13.4L9 19L21 7L19.6 5.6L9 16.2Z" fill="white"/>
-        </svg>
-      `;
-    } else {
-      resultIconHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="10" fill="#F44336"/>
-          <path d="M12 10.6L16.4 6.2L17.8 7.6L13.4 12L17.8 16.4L16.4 17.8L12 13.4L7.6 17.8L6.2 16.4L10.6 12L6.2 7.6L12 10.6Z" fill="white"/>
-          </svg>
-      `;
-    }
-    const li = document.createElement('li');
-    li.className = 'hist-item';
-    li.innerHTML = `
-      <span>#${item.period.slice(-5)}</span>
-      <span>
-        ${predictedValue}
-        <span class="magic-wand-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M19.99 11.99L12 4L4 11.99L12 19.99L19.99 11.99Z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
-            <path d="M12 4V2M4 12H2M20 12H22M12 20V22" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <path d="M7.07 7.07L5.66 5.66M16.93 16.93L15.52 15.52" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-      </span>
-      <span class="result-icon">${resultIconHTML}</span>
-    `;
-    historyEl.appendChild(li);
-  });
+        if (item.actual === null) {
+            // Updated pending icon size
+            resultIconHTML = `<dotlottie-wc src="https://lottie.host/c1ab2cf0-1be1-4d94-9df9-c6e134653d50/CebA8FvVtH.lottie" style="width: 30px; height: 30px;" speed="1" autoplay loop></dotlottie-wc>`;
+        } else if (item.predicted === item.actual) {
+            // Updated win icon size
+            resultIconHTML = `<dotlottie-wc src="https://lottie.host/bf459db5-8ac3-408a-8b75-8673aa9671bb/h67wfehT36.lottie" style="width: 30px; height: 30px;" speed="1"></dotlottie-wc>`;
+        } else {
+            // Updated loss icon size
+            resultIconHTML = `<dotlottie-wc src="https://lottie.host/d80d0180-d00b-4dae-a239-c98e497e7d99/y5NaX27egq.lottie" style="width: 30px; height: 30px;" speed="1"></dotlottie-wc>`;
+        }
+        const li = document.createElement('li');
+        li.className = 'hist-item';
+        li.innerHTML = `
+            <span>#${item.period.slice(-5)}</span>
+            <span>
+                ${predictedValue}
+                <span class="magic-wand-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M19.99 11.99L12 4L4 11.99L12 19.99L19.99 11.99Z" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M12 4V2M4 12H2M20 12H22M12 20V22" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M7.07 7.07L5.66 5.66M16.93 16.93L15.52 15.52" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </span>
+            </span>
+            <span class="result-icon">${resultIconHTML}</span>
+        `;
+        historyEl.appendChild(li);
+    });
 }
 
 function openHistory() { document.getElementById('historyOverlay').style.display = 'block'; }
